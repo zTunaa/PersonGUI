@@ -14,7 +14,6 @@ public class OCCCDate implements Serializable {
     public static final boolean STYLE_NAMES = false;
     public static final boolean SHOW_DAY_NAME = true;
     public static final boolean HIDE_DAY_NAME = false;
-
     private boolean dateFormat = FORMAT_US;
     private boolean dateStyle = STYLE_NUMBERS;
     private boolean dateDayName = SHOW_DAY_NAME;
@@ -42,6 +41,33 @@ public class OCCCDate implements Serializable {
         this.year = gc.get(Calendar.YEAR);
         this.monthOfYear = gc.get(Calendar.MONTH) + 1;
         this.dayOfMonth = gc.get(Calendar.DAY_OF_MONTH);
+    }
+    public static OCCCDate parse(String s) throws IllegalArgumentException {
+        s = s.trim();
+        try {
+            if (s.contains("-")) { // Assume YYYY-MM-DD
+                String[] parts = s.split("-");
+                int year = Integer.parseInt(parts[0]);
+                int month = Integer.parseInt(parts[1]);
+                int day = Integer.parseInt(parts[2]);
+                return new OCCCDate(day, month, year);
+            } else if (s.contains("/")) {
+                String[] parts = s.split("/");
+                int part1 = Integer.parseInt(parts[0]);
+                int part2 = Integer.parseInt(parts[1]);
+                int part3 = Integer.parseInt(parts[2]);
+
+                // Guess format from context
+                if (part1 > 12) { // likely DD/MM/YYYY (EU)
+                    return new OCCCDate(part1, part2, part3);
+                } else { // MM/DD/YYYY (US)
+                    return new OCCCDate(part2, part1, part3);
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY");
+        }
+        throw new IllegalArgumentException("Unrecognized date format.");
     }
 
     // Copy constructor

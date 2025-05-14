@@ -1,4 +1,3 @@
-/*
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -8,129 +7,110 @@ import java.util.ArrayList;
 public class PersonGUI extends JFrame {
     private ArrayList<Person> people = new ArrayList<>();
     private JComboBox<Person> personComboBox = new JComboBox<>();
-    private JTextArea detailsArea = new JTextArea(10, 30);
-    private File currentFile = null;
+
+    private JPanel detailsPanel = new JPanel(new GridLayout(0, 2));
+    private JLabel nameLabel = new JLabel();
+    private JLabel dobLabel = new JLabel();
+    private JLabel ageLabel = new JLabel();
+    private JLabel govIDLabel = new JLabel();
+    private JLabel studentIDLabel = new JLabel();
 
     public PersonGUI() {
-        super("Person Manager");
-
+        setTitle("Person Manager");
+        setSize(500, 300);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-        setupMenuBar();
 
-        detailsArea.setEditable(false);
-        add(new JScrollPane(detailsArea), BorderLayout.CENTER);
+        // Combo box panel
+        JPanel topPanel = new JPanel();
+        topPanel.add(new JLabel("Select Person:"));
+        topPanel.add(personComboBox);
+        add(topPanel, BorderLayout.NORTH);
 
-        JPanel bottomPanel = new JPanel(new FlowLayout());
+        // Details panel
+        detailsPanel.add(new JLabel("Name:"));
+        detailsPanel.add(nameLabel);
+        detailsPanel.add(new JLabel("Date of Birth:"));
+        detailsPanel.add(dobLabel);
+        detailsPanel.add(new JLabel("Age:"));
+        detailsPanel.add(ageLabel);
+        detailsPanel.add(new JLabel("Gov ID:"));
+        detailsPanel.add(govIDLabel);
+        detailsPanel.add(new JLabel("Student ID:"));
+        detailsPanel.add(studentIDLabel);
+        add(detailsPanel, BorderLayout.CENTER);
 
-        JButton newBtn = new JButton("Add Person");
-        JButton editBtn = new JButton("Edit");
-        JButton deleteBtn = new JButton("Delete");
+        // Button panel
+        JPanel buttonPanel = new JPanel();
+        JButton addButton = new JButton("Add");
+        JButton editButton = new JButton("Edit");
+        JButton deleteButton = new JButton("Delete");
+        JButton saveButton = new JButton("Save");
+        JButton loadButton = new JButton("Load");
 
-        bottomPanel.add(new JLabel("Select Person:"));
-        bottomPanel.add(personComboBox);
-        bottomPanel.add(newBtn);
-        bottomPanel.add(editBtn);
-        bottomPanel.add(deleteBtn);
+        buttonPanel.add(addButton);
+        buttonPanel.add(editButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(saveButton);
+        buttonPanel.add(loadButton);
+        add(buttonPanel, BorderLayout.SOUTH);
 
-        add(bottomPanel, BorderLayout.SOUTH);
-
+        // Listeners
         personComboBox.addActionListener(e -> displaySelectedPerson());
-        newBtn.addActionListener(e -> addNewPerson());
-        editBtn.addActionListener(e -> editSelectedPerson());
-        deleteBtn.addActionListener(e -> deleteSelectedPerson());
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        pack();
-        setVisible(true);
-    }
-
-    private void setupMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
-
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem newFile = new JMenuItem("New");
-        JMenuItem openFile = new JMenuItem("Open...");
-        JMenuItem saveFile = new JMenuItem("Save");
-        JMenuItem saveAsFile = new JMenuItem("Save As...");
-        JMenuItem exit = new JMenuItem("Exit");
-
-        newFile.addActionListener(e -> newFile());
-        openFile.addActionListener(e -> openFile());
-        saveFile.addActionListener(e -> saveFile());
-        saveAsFile.addActionListener(e -> saveFileAs());
-        exit.addActionListener(e -> System.exit(0));
-
-        fileMenu.add(newFile);
-        fileMenu.add(openFile);
-        fileMenu.add(saveFile);
-        fileMenu.add(saveAsFile);
-        fileMenu.addSeparator();
-        fileMenu.add(exit);
-
-        JMenu helpMenu = new JMenu("Help");
-        JMenuItem helpItem = new JMenuItem("About");
-        helpItem.addActionListener(e -> JOptionPane.showMessageDialog(this, "Person Manager GUI\nCreated for OCCC"));
-
-        helpMenu.add(helpItem);
-
-        menuBar.add(fileMenu);
-        menuBar.add(helpMenu);
-        setJMenuBar(menuBar);
-    }
-
-    private void newFile() {
-        people.clear();
-        personComboBox.removeAllItems();
-        detailsArea.setText("");
-        currentFile = null;
-    }
-
-    private void openFile() {
-        JFileChooser chooser = new JFileChooser();
-        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try (ObjectInputStream oin = new ObjectInputStream(new FileInputStream(chooser.getSelectedFile()))) {
-                people.clear();
-                while (true) {
-                    try {
-                        Object o = oin.readObject();
-                        if (o instanceof OCCCPerson) {
-                            people.add((OCCCPerson) o);
-                        } else if (o instanceof Person) {
-                            people.add((Person) o);
-                        }
-                    } catch (EOFException e) {
-                        break; // End of file reached
-                    }
-                }
+        addButton.addActionListener(e -> {
+            Person p = PersonDialog.showDialog(this, null);
+            if (p != null) {
+                people.add(p);
                 updateComboBox();
-                currentFile = chooser.getSelectedFile();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Failed to load file: " + ex.getMessage());
+                personComboBox.setSelectedItem(p);
             }
-        }
-    }
+        });
 
-    private void saveFile() {
-        if (currentFile != null) {
-            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(currentFile))) {
-                for (Person p : people) {
-                    System.out.println("Saving: " + p);
-                    oos.writeObject(p);
+        editButton.addActionListener(e -> {
+            Person selected = (Person) personComboBox.getSelectedItem();
+            if (selected != null) {
+                Person updated = PersonDialog.showDialog(this, selected);
+                if (updated != null) {
+                    people.set(people.indexOf(selected), updated);
+                    updateComboBox();
+                    personComboBox.setSelectedItem(updated);
                 }
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
             }
-        } else {
-            saveFileAs();
-        }
-    }
+        });
 
-    private void saveFileAs() {
-        JFileChooser chooser = new JFileChooser();
-        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            currentFile = chooser.getSelectedFile();
-            saveFile();
-        }
+        deleteButton.addActionListener(e -> {
+            Person selected = (Person) personComboBox.getSelectedItem();
+            if (selected != null) {
+                people.remove(selected);
+                updateComboBox();
+            }
+        });
+
+        saveButton.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(fc.getSelectedFile()))) {
+                    out.writeObject(people);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Error saving file.");
+                }
+            }
+        });
+
+        loadButton.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(fc.getSelectedFile()))) {
+                    people = (ArrayList<Person>) in.readObject();
+                    updateComboBox();
+                } catch (IOException | ClassNotFoundException ex) {
+                    JOptionPane.showMessageDialog(this, "Error loading file.");
+                }
+            }
+        });
+
+        setVisible(true);
     }
 
     private void updateComboBox() {
@@ -138,59 +118,34 @@ public class PersonGUI extends JFrame {
         for (Person p : people) {
             personComboBox.addItem(p);
         }
-        detailsArea.setText("");
+        displaySelectedPerson();
     }
 
     private void displaySelectedPerson() {
-        Person selected = (Person) personComboBox.getSelectedItem();
-        if (selected != null) {
-            detailsArea.setText(selected.toString());
+        Person p = (Person) personComboBox.getSelectedItem();
+        if (p == null) {
+            nameLabel.setText("");
+            dobLabel.setText("");
+            ageLabel.setText("");
+            govIDLabel.setText("");
+            studentIDLabel.setText("");
+            return;
         }
-    }
 
-    private void addNewPerson() {
-        String[] options = {"Person", "OCCCPerson"};
-        int type = JOptionPane.showOptionDialog(this, "Select type to add:", "New Person",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+        nameLabel.setText(p.getFirstName() + " " + p.getLastName());
+        dobLabel.setText(p.getDOB().toString());
+        ageLabel.setText(String.valueOf(p.getAge()));
 
-        if (type == -1) return;
-
-        String fn = JOptionPane.showInputDialog(this, "First Name:");
-        String ln = JOptionPane.showInputDialog(this, "Last Name:");
-
-        if (type == 0) {
-            Person newPerson = new Person(fn, ln);
-            people.add(newPerson);
-            updateComboBox();
-            personComboBox.setSelectedItem(newPerson);
+        if (p instanceof RegisteredPerson rp) {
+            govIDLabel.setText(rp.getGovernmentID());
         } else {
-            String id = JOptionPane.showInputDialog(this, "ID Number:");
-            OCCCPerson occc = new OCCCPerson(fn, ln, id);
-            people.add(occc);
-            updateComboBox();
-            personComboBox.setSelectedItem(occc);
+            govIDLabel.setText("—");
         }
-    }
 
-    private void editSelectedPerson() {
-        Person selected = (Person) personComboBox.getSelectedItem();
-        if (selected == null) return;
-
-        String fn = JOptionPane.showInputDialog(this, "First Name:", selected.getFirstName());
-        String ln = JOptionPane.showInputDialog(this, "Last Name:", selected.getLastName());
-
-        selected.setFirstName(fn);
-        selected.setLastName(ln);
-
-        updateComboBox();
-        personComboBox.setSelectedItem(selected);
-    }
-
-    private void deleteSelectedPerson() {
-        Person selected = (Person) personComboBox.getSelectedItem();
-        if (selected != null) {
-            people.remove(selected);
-            updateComboBox();
+        if (p instanceof OCCCPerson op) {
+            studentIDLabel.setText(op.getStudentID());
+        } else {
+            studentIDLabel.setText("—");
         }
     }
 
@@ -198,4 +153,3 @@ public class PersonGUI extends JFrame {
         SwingUtilities.invokeLater(PersonGUI::new);
     }
 }
-*/

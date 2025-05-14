@@ -14,6 +14,10 @@ public class OCCCPerson extends RegisteredPerson implements Serializable {
         this.studentID = studentID;  // Sets the student ID
     }
 
+    public OCCCPerson(String firstName, String lastName, OCCCDate dob, String govID, String studentID) {
+        super(firstName, lastName, dob, govID);
+        this.studentID = studentID;
+    }
 
 
 

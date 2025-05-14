@@ -1,6 +1,6 @@
 import java.io.Serializable;
 
-public class Person implements Serializable {
+public class Person implements Serializable, Comparable<Person> {
     private String firstName;
     private String lastName;
     private OCCCDate dob;
