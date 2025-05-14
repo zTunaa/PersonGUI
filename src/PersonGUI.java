@@ -17,7 +17,7 @@ public class PersonGUI extends JFrame {
 
     public PersonGUI() {
         setTitle("Person Manager");
-        setSize(500, 300);
+        setSize(500, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 

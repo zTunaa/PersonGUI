@@ -1,11 +1,13 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 public class PersonDialog extends JDialog {
     private JTextField firstNameField = new JTextField(10);
     private JTextField lastNameField = new JTextField(10);
-    private JTextField dobField = new JTextField(10); // Format: YYYY-MM-DD
+    private JTextField dobField = new JTextField(10); // Format: MM-dd-yyyy
     private JTextField govIDField = new JTextField(10);
     private JTextField studentIDField = new JTextField(10);
     private JComboBox<String> typeBox = new JComboBox<>(new String[]{"Person", "RegisteredPerson", "OCCCPerson"});
@@ -29,7 +31,7 @@ public class PersonDialog extends JDialog {
         fieldsPanel.add(firstNameField);
         fieldsPanel.add(new JLabel("Last Name:"));
         fieldsPanel.add(lastNameField);
-        fieldsPanel.add(new JLabel("Date of Birth (YYYY-MM-DD):"));
+        fieldsPanel.add(new JLabel("Date of Birth (MM-dd-yyyy):"));
         fieldsPanel.add(dobField);
         fieldsPanel.add(new JLabel("Government ID:"));
         fieldsPanel.add(govIDField);
@@ -87,52 +89,46 @@ public class PersonDialog extends JDialog {
     private Person getPerson() {
         String fn = firstNameField.getText().trim();
         String ln = lastNameField.getText().trim();
+        String dobString = dobField.getText().trim();  // Get raw input
 
-        // Validate first name and last name
-        if (fn.isEmpty() || ln.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "First and last name cannot be empty.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-
-        OCCCDate dob = null;
-        try {
-            dob = OCCCDate.parse(dobField.getText().trim()); // Assuming this method exists in OCCCDate
-            if (dob == null) {
-                throw new IllegalArgumentException("Invalid date format.");
-            }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Date format is invalid. Please use the format YYYY-MM-DD.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return null;
+        // Validate the date format before proceeding
+        OCCCDate dob = validateDateFormat(dobString);
+        if (dob == null) {  // If the date is invalid
+            return null;  // Do not proceed with creating the person object
         }
 
         String govID = govIDField.getText().trim();
         String studentID = studentIDField.getText().trim();
         String type = (String) typeBox.getSelectedItem();
 
-        // Validate government ID and student ID for specific types
-        if (type.equals("RegisteredPerson") || type.equals("OCCCPerson")) {
-            if (govID.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Government ID cannot be empty.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                return null;
-            }
-        }
-        if (type.equals("OCCCPerson")) {
-            if (studentID.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Student ID cannot be empty for OCCCPerson.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                return null;
-            }
-        }
+        // Proceed to create the person object
+        return switch (type) {
+            case "OCCCPerson" -> new OCCCPerson(fn, ln, dob, govID, studentID);
+            case "RegisteredPerson" -> new RegisteredPerson(fn, ln, dob, govID);
+            default -> new Person(fn, ln, dob);
+        };
+    }
 
-        // Return the appropriate person type
+    // Method to validate the date format (MM-dd-yyyy)
+    private OCCCDate validateDateFormat(String date) {
+        // Define the expected date format (MM-dd-yyyy)
+        SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy");
+        sdf.setLenient(false);  // Make sure the date is strictly validated
+
         try {
-            return switch (type) {
-                case "OCCCPerson" -> new OCCCPerson(fn, ln, dob, govID, studentID);
-                case "RegisteredPerson" -> new RegisteredPerson(fn, ln, dob, govID);
-                default -> new Person(fn, ln, dob);
-            };
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error creating person: " + ex.getMessage(), "Creation Error", JOptionPane.ERROR_MESSAGE);
-            return null;
+            // Try parsing the input date
+            sdf.parse(date);  // Will throw ParseException if the format is incorrect
+
+            // If parsing is successful, return the parsed OCCCDate
+            return new OCCCDate(Integer.parseInt(date.substring(3, 5)),
+                    Integer.parseInt(date.substring(0, 2)),
+                    Integer.parseInt(date.substring(6, 10)));
+
+        } catch (ParseException ex) {
+            // If the date is invalid, show an error message
+            JOptionPane.showMessageDialog(this, "Invalid date format. Please enter the date in MM-dd-yyyy format.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return null;  // Return null to indicate an error
         }
     }
 }
