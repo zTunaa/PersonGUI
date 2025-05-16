@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class PersonGUI extends JFrame {
     private ArrayList<Person> people = new ArrayList<>();
@@ -18,8 +19,42 @@ public class PersonGUI extends JFrame {
     public PersonGUI() {
         setTitle("Person Manager");
         setSize(500, 500);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         setLayout(new BorderLayout());
+
+        // Confirm before exiting via window close
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                int result = JOptionPane.showConfirmDialog(PersonGUI.this, "Exit the application?", "Confirm Exit", JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    System.exit(0);
+                }
+            }
+        });
+
+        // Menu bar setup
+        JMenuBar menuBar = new JMenuBar();
+
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem loadItem = new JMenuItem("Load");
+        JMenuItem saveItem = new JMenuItem("Save");
+        JMenuItem exitItem = new JMenuItem("Exit");
+        fileMenu.add(saveItem);
+        fileMenu.add(loadItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitItem);
+
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem addItem = new JMenuItem("Add");
+        JMenuItem editItem = new JMenuItem("Edit");
+        JMenuItem deleteItem = new JMenuItem("Delete");
+        editMenu.add(addItem);
+        editMenu.add(editItem);
+        editMenu.add(deleteItem);
+
+        menuBar.add(fileMenu);
+        menuBar.add(editMenu);
+        setJMenuBar(menuBar);
 
         // Combo box panel
         JPanel topPanel = new JPanel();
@@ -27,7 +62,7 @@ public class PersonGUI extends JFrame {
         topPanel.add(personComboBox);
         add(topPanel, BorderLayout.NORTH);
 
-        // Details panel
+        // Details panel (scrollable)
         detailsPanel.add(new JLabel("Name:"));
         detailsPanel.add(nameLabel);
         detailsPanel.add(new JLabel("Date of Birth:"));
@@ -38,27 +73,22 @@ public class PersonGUI extends JFrame {
         detailsPanel.add(govIDLabel);
         detailsPanel.add(new JLabel("Student ID:"));
         detailsPanel.add(studentIDLabel);
-        add(detailsPanel, BorderLayout.CENTER);
 
-        // Button panel
-        JPanel buttonPanel = new JPanel();
-        JButton addButton = new JButton("Add");
-        JButton editButton = new JButton("Edit");
-        JButton deleteButton = new JButton("Delete");
-        JButton saveButton = new JButton("Save");
-        JButton loadButton = new JButton("Load");
+        // Add bottom border to each label and value component for separation
+        for (Component comp : detailsPanel.getComponents()) {
+            if (comp instanceof JComponent jc) {
+                jc.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.GRAY));
+            }
+        }
 
-        buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(saveButton);
-        buttonPanel.add(loadButton);
-        add(buttonPanel, BorderLayout.SOUTH);
+        JScrollPane detailsScrollPane = new JScrollPane(detailsPanel);
+        detailsScrollPane.setPreferredSize(new Dimension(400, 300));
+        add(detailsScrollPane, BorderLayout.CENTER);
 
         // Listeners
         personComboBox.addActionListener(e -> displaySelectedPerson());
 
-        addButton.addActionListener(e -> {
+        addItem.addActionListener(e -> {
             Person p = PersonDialog.showDialog(this, null);
             if (p != null) {
                 people.add(p);
@@ -67,7 +97,7 @@ public class PersonGUI extends JFrame {
             }
         });
 
-        editButton.addActionListener(e -> {
+        editItem.addActionListener(e -> {
             Person selected = (Person) personComboBox.getSelectedItem();
             if (selected != null) {
                 Person updated = PersonDialog.showDialog(this, selected);
@@ -79,15 +109,18 @@ public class PersonGUI extends JFrame {
             }
         });
 
-        deleteButton.addActionListener(e -> {
+        deleteItem.addActionListener(e -> {
             Person selected = (Person) personComboBox.getSelectedItem();
             if (selected != null) {
-                people.remove(selected);
-                updateComboBox();
+                int result = JOptionPane.showConfirmDialog(this, "Delete this person?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    people.remove(selected);
+                    updateComboBox();
+                }
             }
         });
 
-        saveButton.addActionListener(e -> {
+        saveItem.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
             if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
                 try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(fc.getSelectedFile()))) {
@@ -98,7 +131,7 @@ public class PersonGUI extends JFrame {
             }
         });
 
-        loadButton.addActionListener(e -> {
+        loadItem.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(fc.getSelectedFile()))) {
@@ -110,10 +143,18 @@ public class PersonGUI extends JFrame {
             }
         });
 
+        exitItem.addActionListener(e -> {
+            int result = JOptionPane.showConfirmDialog(this, "Exit the application?", "Confirm Exit", JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                System.exit(0);
+            }
+        });
+
         setVisible(true);
     }
 
     private void updateComboBox() {
+        people.sort(Comparator.comparing(Person::toString)); // Sort by name
         personComboBox.removeAllItems();
         for (Person p : people) {
             personComboBox.addItem(p);
@@ -150,6 +191,9 @@ public class PersonGUI extends JFrame {
     }
 
     public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {}
         SwingUtilities.invokeLater(PersonGUI::new);
     }
 }
