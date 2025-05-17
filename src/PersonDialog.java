@@ -59,7 +59,7 @@ public class PersonDialog extends JDialog {
         if (person != null) {
             firstNameField.setText(person.getFirstName());
             lastNameField.setText(person.getLastName());
-            dobField.setText(person.getDOB().toString());
+            dobField.setText(formatOCCCDateForField(person.getDOB()));
 
             if (person instanceof OCCCPerson op) {
                 typeBox.setSelectedItem("OCCCPerson");
@@ -89,7 +89,7 @@ public class PersonDialog extends JDialog {
     private Person getPerson() {
         String fn = firstNameField.getText().trim();
         String ln = lastNameField.getText().trim();
-        String dobString = dobField.getText().trim();  // Get raw input
+        String dobString = dobField.getText().trim();
 
         // Validate the date format before proceeding
         OCCCDate dob = validateDateFormat(dobString);
@@ -111,24 +111,29 @@ public class PersonDialog extends JDialog {
 
     // Method to validate the date format (MM-dd-yyyy)
     private OCCCDate validateDateFormat(String date) {
-        // Define the expected date format (MM-dd-yyyy)
         SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy");
-        sdf.setLenient(false);  // Make sure the date is strictly validated
+        sdf.setLenient(false);
 
         try {
-            // Try parsing the input date
-            sdf.parse(date);  // Will throw ParseException if the format is incorrect
-
-            // If parsing is successful, return the parsed OCCCDate
-            return new OCCCDate(Integer.parseInt(date.substring(3, 5)),
-                    Integer.parseInt(date.substring(0, 2)),
-                    Integer.parseInt(date.substring(6, 10)));
-
+            sdf.parse(date);
+            return new OCCCDate(
+                    Integer.parseInt(date.substring(3, 5)),  // day
+                    Integer.parseInt(date.substring(0, 2)),  // month
+                    Integer.parseInt(date.substring(6, 10))  // year
+            );
         } catch (ParseException ex) {
-            // If the date is invalid, show an error message
             JOptionPane.showMessageDialog(this, "Invalid date format. Please enter the date in MM-dd-yyyy format.",
                     "Error", JOptionPane.ERROR_MESSAGE);
-            return null;  // Return null to indicate an error
+            return null;
         }
     }
+
+    // Helper to format OCCCDate as MM-dd-yyyy string
+    private String formatOCCCDateForField(OCCCDate date) {
+        int month = date.getMonthNumber();
+        int day = date.getDayOfMonth();
+        int year = date.getYear();
+        return String.format("%02d-%02d-%04d", month, day, year);
+    }
+
 }
